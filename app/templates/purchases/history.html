@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Purchase History - Billing System{% endblock %}
+
+{% block content %}
+<h1> Purchase History</h1>
+
+<div class="form-group" style="max-width: 400px;">
+    <label for="customer_email">Filter by Customer Email:</label>
+    <input type="email" id="customer_email" placeholder="Enter email to filter">
+    <button class="btn btn-secondary" onclick="filterByEmail()" style="margin-top: 10px;">Search</button>
+    <button class="btn btn-primary" onclick="loadAllPurchases()" style="margin-top: 10px;">Show All</button>
+</div>
+
+<div id="purchases-list">
+    <p class="loading">Loading purchases...</p>
+</div>
+
+<table id="purchases-table" style="display: none;">
+    <thead>
+        <tr>
+            <th>Purchase ID</th>
+            <th>Customer Email</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="purchases-tbody"></tbody>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadAllPurchases() {
+    try {
+        const purchases = await apiCall('/api/purchases/');
+        displayPurchases(purchases);
+    } catch (error) {
+        showAlert('Failed to load purchases: ' + error.message, 'error');
+    }
+}
+
+async function filterByEmail() {
+    const email = document.getElementById('customer_email').value;
+    if (!email) {
+        showAlert('Please enter an email', 'error');
+        return;
+    }
+    
+    try {
+        const purchases = await apiCall(`/api/purchases/customer/${encodeURIComponent(email)}`);
+        displayPurchases(purchases);
+    } catch (error) {
+        showAlert('Failed to load purchases: ' + error.message, 'error');
+    }
+}
+
+function displayPurchases(purchases) {
+    const tbody = document.getElementById('purchases-tbody');
+    const table = document.getElementById('purchases-table');
+    const loading = document.querySelector('.loading');
+    
+    tbody.innerHTML = '';
+    
+    purchases.forEach(purchase => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${purchase.id}</td>
+            <td>${purchase.customer_email}</td>
+            <td>₹${purchase.rounded_amount}</td>
+            <td>${new Date(purchase.purchase_date).toLocaleString()}</td>
+            <td>
+                <a href="/purchases/${purchase.id}" class="btn btn-secondary">View Details</a>
+            </td>
+        `;
+    });
+    
+    loading.style.display = 'none';
+    table.style.display = 'table';
+}
+
+window.addEventListener('DOMContentLoaded', loadAllPurchases);
+</script>
+{% endblock %}

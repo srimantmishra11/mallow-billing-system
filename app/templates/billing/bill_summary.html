@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Bill Summary - Billing System{% endblock %}
+
+{% block content %}
+<h1> Bill Summary</h1>
+
+<div id="bill-summary" class="loading">Loading bill summary...</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadBillSummary() {
+    const purchaseId = {{ purchase_id }};
+    
+    try {
+        const bill = await apiCall(`/api/billing/${purchaseId}`);
+        
+        let itemsHTML = `
+            <h2>Purchase Details</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product ID</th>
+                        <th>Unit Price</th>
+                        <th>Quantity</th>
+                        <th>Purchase Price</th>
+                        <th>Tax %</th>
+                        <th>Tax Amount</th>
+                        <th>Total Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        bill.items.forEach(item => {
+            itemsHTML += `
+                <tr>
+                    <td>${item.product_id}</td>
+                    <td>${formatCurrency(item.unit_price)}</td>
+                    <td>${item.quantity}</td>
+                    <td>${formatCurrency(item.purchase_price)}</td>
+                    <td>${item.tax_percentage}%</td>
+                    <td>${formatCurrency(item.tax_amount)}</td>
+                    <td><strong>${formatCurrency(item.total_price)}</strong></td>
+                </tr>
+            `;
+        });
+        
+        itemsHTML += '</tbody></table>';
+        
+        let denomsHTML = '';
+        if (bill.denominations.length > 0) {
+            denomsHTML = `
+                <h3>Change Denomination Breakdown</h3>
+                <table style="width: 50%;">
+                    <thead>
+                        <tr>
+                            <th>Denomination</th>
+                            <th>Count</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            bill.denominations.forEach(denom => {
+                denomsHTML += `
+                    <tr>
+                        <td>₹${denom.value}</td>
+                        <td>${denom.count}</td>
+                        <td>₹${denom.amount}</td>
+                    </tr>
+                `;
+            });
+            denomsHTML += '</tbody></table>';
+        } else {
+            denomsHTML = '<p><em>No change returned (exact amount paid)</em></p>';
+        }
+        
+        const summaryHTML = `
+            <div style="background-color: #e8f4f8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <p><strong>Purchase ID:</strong> ${bill.purchase_id}</p>
+                <p><strong>Customer Email:</strong> ${bill.customer_email}</p>
+                <p><strong>Date:</strong> ${new Date(bill.purchase_date).toLocaleString()}</p>
+            </div>
+            
+            ${itemsHTML}
+            
+            <div class="summary-box" style="margin-top: 30px;">
+                <h2>Bill Summary</h2>
+                <table style="width: 100%;">
+                    <tr>
+                        <td><strong>Total Price Without Tax:</strong></td>
+                        <td style="text-align: right;">${formatCurrency(bill.total_amount)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Tax Payable:</strong></td>
+                        <td style="text-align: right;">${formatCurrency(bill.tax_amount)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Net Price:</strong></td>
+                        <td style="text-align: right;">${formatCurrency(bill.net_amount)}</td>
+                    </tr>
+                    <tr style="background-color: #ffd700;">
+                        <td><strong>Rounded Net Price (Bill Amount):</strong></td>
+                        <td style="text-align: right; font-size: 20px;"><strong>₹${bill.rounded_amount}</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cash Paid by Customer:</strong></td>
+                        <td style="text-align: right;">${formatCurrency(bill.cash_paid)}</td>
+                    </tr>
+                    <tr style="background-color: #90EE90;">
+                        <td><strong>Balance Returned:</strong></td>
+                        <td style="text-align: right; font-size: 18px;"><strong>${formatCurrency(bill.balance_returned)}</strong></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                ${denomsHTML}
+            </div>
+            
+            <div style="margin-top: 30px; text-align: center;">
+                <p style="padding: 15px; background-color: #d4edda; border-radius: 4px; color: #155724;">
+                    Invoice email sent to ${bill.customer_email}
+                </p>
+                <div style="margin-top: 20px;">
+                    <a href="/billing" class="btn btn-primary">Create Another Bill</a>
+                    <a href="/purchases" class="btn btn-secondary">View Purchase History</a>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('bill-summary').innerHTML = summaryHTML;
+    } catch (error) {
+        document.getElementById('bill-summary').innerHTML = `
+            <div class="alert alert-error">
+                Error loading bill summary: ${error.message}
+            </div>
+        `;
+    }
+}
+
+window.addEventListener('DOMContentLoaded', loadBillSummary);
+</script>
+{% endblock %}

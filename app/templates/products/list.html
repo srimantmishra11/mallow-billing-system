@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Billing System{% endblock %}
+
+{% block content %}
+<h1>Products Management</h1>
+
+<div style="margin-bottom: 20px;">
+    <a href="/products/add" class="btn btn-primary">➕ Add New Product</a>
+</div>
+
+<div id="products-list">
+    <p class="loading">Loading products...</p>
+</div>
+
+<table id="products-table" style="display: none;">
+    <thead>
+        <tr>
+            <th>Product ID</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Tax %</th>
+            <th>Stock</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="products-tbody"></tbody>
+</table>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProducts() {
+    try {
+        const products = await apiCall('/api/products/');
+        const tbody = document.getElementById('products-tbody');
+        const table = document.getElementById('products-table');
+        const loading = document.querySelector('.loading');
+        
+        tbody.innerHTML = '';
+        
+        products.forEach(product => {
+            const row = tbody.insertRow();
+            row.innerHTML = `
+                <td>${product.product_id}</td>
+                <td>${product.name}</td>
+                <td>${formatCurrency(product.price)}</td>
+                <td>${product.tax_percentage}%</td>
+                <td>${product.available_stock}</td>
+                <td>
+                    <button class="btn btn-secondary" onclick="editProduct('${product.product_id}')">Edit</button>
+                </td>
+            `;
+        });
+        
+        loading.style.display = 'none';
+        table.style.display = 'table';
+    } catch (error) {
+        showAlert('Failed to load products: ' + error.message, 'error');
+    }
+}
+
+// Load products on page load
+window.addEventListener('DOMContentLoaded', loadProducts);
+</script>
+{% endblock %}

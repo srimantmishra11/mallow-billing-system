@@ -1,0 +1,42 @@
+async function loadPurchaseDetail() {
+    const purchaseId = "{{ purchase_id }}";
+    
+    try {
+        const purchase = await apiCall(`/api/purchases/${purchaseId}`);
+        
+        let itemsHTML = '<h3>Items</h3><ul>';
+
+        if (!purchase.items || purchase.items.length === 0) {
+            itemsHTML += '<li>No items found</li>';
+        } else {
+            purchase.items.forEach(item => {
+                itemsHTML += `<li>${item.product_id} - Qty: ${item.quantity} - Total: ${formatCurrency(item.total_price)}</li>`;
+            });
+        }
+
+        itemsHTML += '</ul>';
+        
+        const detailHTML = `
+            <div class="summary-box">
+                <p><strong>Purchase ID:</strong> ${purchase.id}</p>
+                <p><strong>Customer:</strong> ${purchase.customer_email}</p>
+                <p><strong>Date:</strong> ${new Date(purchase.purchase_date).toLocaleString('en-IN')}</p>
+                <p><strong>Total Amount:</strong> ${formatCurrency(purchase.rounded_amount)}</p>
+            </div>
+            ${itemsHTML}
+            <div style="margin-top: 20px;">
+                <a href="/purchases" class="btn btn-primary">← Back to History</a>
+                <a href="/billing/summary/${purchase.id}" class="btn btn-secondary">View Full Bill</a>
+            </div>
+        `;
+        
+        const container = document.getElementById('purchase-detail');
+        container.classList.remove('loading');
+        container.innerHTML = detailHTML;
+
+    } catch (error) {
+        document.getElementById('purchase-detail').innerHTML = `
+            <div class="alert alert-error">Error: ${error.message}</div>
+        `;
+    }
+}
