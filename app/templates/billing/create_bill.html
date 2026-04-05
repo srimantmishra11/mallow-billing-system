@@ -1,147 +1,113 @@
 {% extends "base.html" %}
 
-{% block title %}Bill Summary - Billing System{% endblock %}
+{% block title %}Create Bill - Billing System{% endblock %}
 
 {% block content %}
-<h1> Bill Summary</h1>
+<h1>Create New Bill</h1>
 
-<div id="bill-summary" class="loading">Loading bill summary...</div>
+<form id="billing-form" style="max-width: 800px; margin: 20px auto;">
+    <!-- Customer Email -->
+    <div class="form-group">
+        <label for="customer_email">Customer Email:</label>
+        <input type="email" id="customer_email" name="customer_email" required placeholder="customer@example.com">
+    </div>
+
+    <!-- Products Container -->
+    <div id="products-container">
+        <h3>Products</h3>
+        <div class="products-row" id="product-row-1">
+            <div class="form-group">
+                <label for="product_id_1">Product ID:</label>
+                <input type="text" id="product_id_1" name="product_id_1" required placeholder="e.g., P101">
+            </div>
+            <div class="form-group">
+                <label for="quantity_1">Quantity:</label>
+                <input type="number" id="quantity_1" name="quantity_1" min="1" required value="1">
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-secondary" onclick="addProductRow()" style="margin: 20px 0;">
+        + Add Another Product
+    </button>
+
+    <!-- Cash Paid -->s
+    <div class="form-group" style="margin-top: 30px;">
+        <label for="cash_paid">Cash Paid (₹):</label>
+        <input type="number" id="cash_paid" name="cash_paid" min="0" required placeholder="Enter amount paid" step="0.01">
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="btn btn-primary" style="margin-top: 20px; padding: 10px 30px; font-size: 16px;">
+        Create Bill
+    </button>
+</form>
+
+<!-- Loading and Error Messages -->
+<div id="message-container"></div>
 
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/js/dynamic_form.js"></script>
 <script>
-async function loadBillSummary() {
-    const purchaseId = {{ purchase_id }};
-    
-    try {
-        const bill = await apiCall(`/api/billing/${purchaseId}`);
-        
-        let itemsHTML = `
-            <h2>Purchase Details</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Product ID</th>
-                        <th>Unit Price</th>
-                        <th>Quantity</th>
-                        <th>Purchase Price</th>
-                        <th>Tax %</th>
-                        <th>Tax Amount</th>
-                        <th>Total Price</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-        
-        bill.items.forEach(item => {
-            itemsHTML += `
-                <tr>
-                    <td>${item.product_id}</td>
-                    <td>${formatCurrency(item.unit_price)}</td>
-                    <td>${item.quantity}</td>
-                    <td>${formatCurrency(item.purchase_price)}</td>
-                    <td>${item.tax_percentage}%</td>
-                    <td>${formatCurrency(item.tax_amount)}</td>
-                    <td><strong>${formatCurrency(item.total_price)}</strong></td>
-                </tr>
-            `;
-        });
-        
-        itemsHTML += '</tbody></table>';
-        
-        let denomsHTML = '';
-        if (bill.denominations.length > 0) {
-            denomsHTML = `
-                <h3>Change Denomination Breakdown</h3>
-                <table style="width: 50%;">
-                    <thead>
-                        <tr>
-                            <th>Denomination</th>
-                            <th>Count</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            bill.denominations.forEach(denom => {
-                denomsHTML += `
-                    <tr>
-                        <td>₹${denom.value}</td>
-                        <td>${denom.count}</td>
-                        <td>₹${denom.amount}</td>
-                    </tr>
-                `;
-            });
-            denomsHTML += '</tbody></table>';
-        } else {
-            denomsHTML = '<p><em>No change returned (exact amount paid)</em></p>';
-        }
-        
-        const summaryHTML = `
-            <div style="background-color: #e8f4f8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <p><strong>Purchase ID:</strong> ${bill.purchase_id}</p>
-                <p><strong>Customer Email:</strong> ${bill.customer_email}</p>
-                <p><strong>Date:</strong> ${new Date(bill.purchase_date).toLocaleString()}</p>
-            </div>
-            
-            ${itemsHTML}
-            
-            <div class="summary-box" style="margin-top: 30px;">
-                <h2>Bill Summary</h2>
-                <table style="width: 100%;">
-                    <tr>
-                        <td><strong>Total Price Without Tax:</strong></td>
-                        <td style="text-align: right;">${formatCurrency(bill.total_amount)}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Total Tax Payable:</strong></td>
-                        <td style="text-align: right;">${formatCurrency(bill.tax_amount)}</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Net Price:</strong></td>
-                        <td style="text-align: right;">${formatCurrency(bill.net_amount)}</td>
-                    </tr>
-                    <tr style="background-color: #ffd700;">
-                        <td><strong>Rounded Net Price (Bill Amount):</strong></td>
-                        <td style="text-align: right; font-size: 20px;"><strong>₹${bill.rounded_amount}</strong></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Cash Paid by Customer:</strong></td>
-                        <td style="text-align: right;">${formatCurrency(bill.cash_paid)}</td>
-                    </tr>
-                    <tr style="background-color: #90EE90;">
-                        <td><strong>Balance Returned:</strong></td>
-                        <td style="text-align: right; font-size: 18px;"><strong>${formatCurrency(bill.balance_returned)}</strong></td>
-                    </tr>
-                </table>
-            </div>
-            
-            <div style="margin-top: 30px;">
-                ${denomsHTML}
-            </div>
-            
-            <div style="margin-top: 30px; text-align: center;">
-                <p style="padding: 15px; background-color: #d4edda; border-radius: 4px; color: #155724;">
-                    Invoice email sent to ${bill.customer_email}
-                </p>
-                <div style="margin-top: 20px;">
-                    <a href="/billing" class="btn btn-primary">Create Another Bill</a>
-                    <a href="/purchases" class="btn btn-secondary">View Purchase History</a>
-                </div>
-            </div>
-        `;
-        
-        document.getElementById('bill-summary').innerHTML = summaryHTML;
-    } catch (error) {
-        document.getElementById('bill-summary').innerHTML = `
-            <div class="alert alert-error">
-                Error loading bill summary: ${error.message}
-            </div>
-        `;
-    }
-}
+document.getElementById('billing-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
 
-window.addEventListener('DOMContentLoaded', loadBillSummary);
+    try {
+        // Collect form data
+        const customerEmail = document.getElementById('customer_email').value;
+        const cashPaid = parseFloat(document.getElementById('cash_paid').value);
+
+        // Collect products
+        const items = [];
+        const productRows = document.querySelectorAll('.products-row');
+        
+        productRows.forEach(row => {
+            const rowId = row.id.split('-')[2];
+            const productId = document.getElementById(`product_id_${rowId}`).value.trim();
+            const quantity = parseInt(document.getElementById(`quantity_${rowId}`).value);
+
+            if (productId && quantity > 0) {
+                items.push({
+                    product_id: productId,
+                    quantity: quantity
+                });
+            }
+        });
+
+        // Validate inputs
+        if (items.length === 0) {
+            showAlert('Please add at least one product', 'error');
+            return;
+        }
+
+        if (!customerEmail) {
+            showAlert('Please enter customer email', 'error');
+            return;
+        }
+
+        if (!cashPaid || cashPaid <= 0) {
+            showAlert('Please enter valid cash amount', 'error');
+            return;
+        }
+
+        // Show loading message
+        showAlert('Creating bill...', 'info');
+
+        // Call API to create bill
+        const response = await apiCall('/api/billing/create', 'POST', {
+            customer_email: customerEmail,
+            items: items,
+            cash_paid: cashPaid
+        });
+
+        // Redirect to bill summary page
+        window.location.href = `/billing/summary/${response.purchase_id}`;
+
+    } catch (error) {
+        showAlert(`Error creating bill: ${error.message}`, 'error');
+    }
+});
 </script>
 {% endblock %}

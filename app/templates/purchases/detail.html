@@ -1,3 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Purchase #{{ purchase_id }} - Billing System{% endblock %}
+
+{% block content %}
+<h1>Purchase Details</h1>
+
+<div id="purchase-detail" class="loading">Loading purchase details...</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
 async function loadPurchaseDetail() {
     const purchaseId = "{{ purchase_id }}";
     
@@ -40,3 +53,7 @@ async function loadPurchaseDetail() {
         `;
     }
 }
+
+window.addEventListener('DOMContentLoaded', loadPurchaseDetail);
+</script>
+{% endblock %}
