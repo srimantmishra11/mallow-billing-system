@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Product - Billing System{% endblock %}
+
+{% block content %}
+<h1>Edit Product</h1>
+
+<form id="product-form" style="max-width: 600px; margin: 20px auto;">
+    <!-- Product ID (Read-only) -->
+    <div class="form-group">
+        <label for="product_id">Product ID:</label>
+        <input type="text" id="product_id" name="product_id" readonly placeholder="e.g., P101">
+    </div>
+
+    <!-- Product Name -->
+    <div class="form-group">
+        <label for="name">Product Name:</label>
+        <input type="text" id="name" name="name" required placeholder="e.g., Laptop">
+    </div>
+
+    <!-- Price -->
+    <div class="form-group">
+        <label for="price">Price (₹):</label>
+        <input type="number" id="price" name="price" min="0" required placeholder="e.g., 50000" step="0.01">
+    </div>
+
+    <!-- Tax Percentage -->
+    <div class="form-group">
+        <label for="tax_percentage">Tax Percentage (%):</label>
+        <input type="number" id="tax_percentage" name="tax_percentage" min="0" max="100" required placeholder="e.g., 18" step="0.01">
+    </div>
+
+    <!-- Available Stock -->
+    <div class="form-group">
+        <label for="available_stock">Available Stock:</label>
+        <input type="number" id="available_stock" name="available_stock" min="0" required placeholder="e.g., 100">
+    </div>
+
+    <!-- Submit and Cancel Buttons -->
+    <button type="submit" class="btn btn-primary" style="margin-top: 20px; padding: 10px 30px; font-size: 16px;">
+        Update Product
+    </button>
+    <a href="/products" class="btn btn-secondary" style="margin-top: 20px; margin-left: 10px; padding: 10px 30px; font-size: 16px;">
+        Cancel
+    </a>
+    <button type="button" class="btn btn-danger" style="margin-top: 20px; margin-left: 10px; padding: 10px 30px; font-size: 16px;" onclick="deleteProduct()">
+        Delete Product
+    </button>
+</form>
+
+<!-- Message Container -->
+<div id="message-container"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dynamic_form.js"></script>
+<script>
+const productId = "{{ product_id }}";
+
+// Load product details on page load
+window.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const product = await apiCall(`/api/products/${productId}`);
+        
+        // Populate form with product data
+        document.getElementById('product_id').value = product.product_id;
+        document.getElementById('name').value = product.name;
+        document.getElementById('price').value = product.price;
+        document.getElementById('tax_percentage').value = product.tax_percentage;
+        document.getElementById('available_stock').value = product.available_stock;
+    } catch (error) {
+        showAlert(`Error loading product: ${error.message}`, 'error');
+    }
+});
+
+// Handle form submission
+document.getElementById('product-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    try {
+        const productData = {
+            name: document.getElementById('name').value.trim(),
+            price: parseFloat(document.getElementById('price').value),
+            tax_percentage: parseFloat(document.getElementById('tax_percentage').value),
+            available_stock: parseInt(document.getElementById('available_stock').value)
+        };
+
+        // Validation
+        if (!productData.name) {
+            showAlert('Please fill in all required fields', 'error');
+            return;
+        }
+
+        if (productData.price <= 0) {
+            showAlert('Price must be greater than 0', 'error');
+            return;
+        }
+
+        if (productData.available_stock < 0) {
+            showAlert('Stock cannot be negative', 'error');
+            return;
+        }
+
+        showAlert('Updating product...', 'info');
+
+        // Call API to update product
+        const response = await apiCall(`/api/products/${productId}`, 'PUT', productData);
+
+        showAlert(`Product "${response.name}" updated successfully!`, 'success');
+
+        // Redirect to products list after 2 seconds
+        setTimeout(() => {
+            window.location.href = '/products';
+        }, 2000);
+
+    } catch (error) {
+        showAlert(`Error updating product: ${error.message}`, 'error');
+    }
+});
+
+// Delete product function
+async function deleteProduct() {
+    if (confirm('Are you sure you want to delete this product?')) {
+        try {
+            showAlert('Deleting product...', 'info');
+            await apiCall(`/api/products/${productId}`, 'DELETE');
+            showAlert('Product deleted successfully!', 'success');
+            
+            // Redirect to products list after 2 seconds
+            setTimeout(() => {
+                window.location.href = '/products';
+            }, 2000);
+        } catch (error) {
+            showAlert(`Error deleting product: ${error.message}`, 'error');
+        }
+    }
+}
+</script>
+{% endblock %}

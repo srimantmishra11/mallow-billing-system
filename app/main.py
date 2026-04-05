@@ -73,6 +73,24 @@ async def products_page(request: Request):
     )
 
 
+@app.get("/products/add", response_class=HTMLResponse)
+async def add_product_page(request: Request):
+    """Add product page"""
+    return templates.TemplateResponse(
+        "products/add.html",
+        {"request": request, "title": "Add Product"}
+    )
+
+
+@app.get("/products/edit/{product_id}", response_class=HTMLResponse)
+async def edit_product_page(request: Request, product_id: str):
+    """Edit product page"""
+    return templates.TemplateResponse(
+        "products/edit.html",
+        {"request": request, "title": f"Edit Product {product_id}", "product_id": product_id}
+    )
+
+
 @app.get("/billing", response_class=HTMLResponse)
 async def billing_page(request: Request):
     """Billing page"""
